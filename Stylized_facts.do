@@ -8,8 +8,6 @@
 clear all
 set more off, permanently
 gl main "C:\Users\Lucas Rosso\Desktop\ME\Tesis\TESIS\Codigos\Stata"
-*gl data "${main}\Data"
-*gl figures "${main}\Figures_LR"
 
 cd "${main}\Data"
 use all_tmp.dta
