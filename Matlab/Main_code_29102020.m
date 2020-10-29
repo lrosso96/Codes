@@ -110,7 +110,7 @@ sumGrid = sumGrid_aux;
 
 % Iteration set-up:
 Delta     = 1000; % step size (for time) in the implicit method (as opposed to db and db which are steps in the state dimensions)
-maxit     = 200;
+maxit     = 500;
 tol       = 1e-6;
 iter      = 0;
 dist      = zeros(maxit,1); % hold errors during iteration
@@ -591,7 +591,6 @@ Vstar = Vstar(2:length(Vstar));
 end 
 
 toc
-fprintf('Made it !!')
 
 plot(dist(n-20:n))
 ss = zzzz + Rb.*bbbb - c; % solution for savings in liquid asset b
@@ -657,10 +656,12 @@ for mcount = 1:length(adjpoints)
     if m <= I*J*N_ra % get (b',a') from point (b,a)
         bprime = bAdj1(m);
         aprime = aAdj1(m);
+        ra_ind = 1+floor(m/(I*J));
         zind = 1;
     else
         bprime = bAdj2(m - I*J*N_ra);
         aprime = aAdj2(m - I*J*N_ra);
+        ra_ind = 1+floor((m - I*J*N_ra)/(I*J));
         zind = 2;
     end
     bprime_left = discretize(bprime, b); % this gives the index of the left edge for liquid asset
@@ -669,10 +670,10 @@ for mcount = 1:length(adjpoints)
     aprime_right = aprime_left + 1;
     
     % map from grid indexes to points
-    point11 = pointsmat(bprime_left, aprime_left, zind);
-    point12 = pointsmat(bprime_left, aprime_right, zind);
-    point21 = pointsmat(bprime_right, aprime_left, zind);
-    point22 = pointsmat(bprime_right, aprime_right, zind);
+    point11 = pointsmat(bprime_left, aprime_left, ra_ind, zind);
+    point12 = pointsmat(bprime_left, aprime_right, ra_ind, zind);
+    point21 = pointsmat(bprime_right, aprime_left, ra_ind, zind);
+    point22 = pointsmat(bprime_right, aprime_right, ra_ind, zind);
     neighpoints = [point11 point12;
                     point21 point22];
     % check if each point is not an adjustment point
@@ -726,6 +727,7 @@ end
 g(:,:,:,1) = reshape(g_stacked(1:I*J*N_ra),I,J,N_ra);
 g(:,:,:,2) = reshape(g_stacked(I*J*N_ra+1:I*J*N_ra*Nz),I,J,N_ra);
 
+fprintf('Made it !!')
 save('DATA') % to avoid going through the iteration again.
 
 %% --------------- %%
