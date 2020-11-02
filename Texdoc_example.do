@@ -4,6 +4,15 @@
 
 cd "${main}\Tables"
 
+* must add in latex preambleto remove space between () and standard errors 
+* when importing tables from stata
+*\newcommand{\RemoveSpaces}[1]{%
+*  \begingroup
+*  \spaceskip=2sp
+*  \xspaceskip=1sp
+*  #1%
+*  \endgroup}
+
 **********************************************************
 **   Regression 1.- Growth v/s holidays, Full Sample    **
 **********************************************************
