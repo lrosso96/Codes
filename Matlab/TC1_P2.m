@@ -38,7 +38,7 @@ Pi_a = zeros(nK, nK, nZ); % Caso (a)
 Pi_b = zeros(nK, nK, nZ); % Caso (b)
 
 for i=1:nK %capital hoy
-    for j=1:nK %capital ma馻na
+    for j=1:nK %capital ma帽ana
         for h=1:nZ %shock hoy
             if i==j
                 Pi_a(i,j,h)= z(h)*grilla_k(i)^theta -R*grilla_k(i);
@@ -64,7 +64,7 @@ for iter=1:maxIter
         dif=max(max(abs(Vnew-V0)));
     V0=Vnew;
     if display==1
-        fprintf('\n Diferencia: %g, Iteraci髇: %g \n',dif,iter)
+        fprintf('\n Diferencia: %g, Iteraci贸n: %g \n',dif,iter)
     end
     
     if dif<tol
@@ -90,10 +90,10 @@ plot(z, Kpolicy(1,:), '-o') % k*(z)
 hold on
 plot(z, umbral(1,:),'--o')
 plot(z, umbral(2,:), '--o')
-title('Funciones de umbral y capital 髉timo, caso (a)')
+title('Funciones de umbral y capital 贸ptimo, caso (a)')
 xlabel('z','FontSize',15)
 ylabel('Nivel de capital','FontSize',15);
-legend('Capital 髉timo','Cota inferior','Cota superior')
+legend('Capital 贸ptimo','Cota inferior','Cota superior')
 
 % Policy function
 figure(2)
@@ -103,7 +103,7 @@ plot(grilla_k,Kpolicy(:,4))
 plot(grilla_k,Kpolicy(:,7))
 title('Policy Function, caso(a)')
 xlabel('K hoy','FontSize',15)
-ylabel('K ma馻na','FontSize',15);
+ylabel('K ma帽ana','FontSize',15);
 legend('z alto','z promedio','z bajo')
 
 %Value function
@@ -128,7 +128,7 @@ for iter=1:maxIter
         dif=max(max(abs(Vnew-V0)));
     V0=Vnew;
     if display==1
-        fprintf('\n Diferencia: %g, Iteraci髇: %g \n',dif,iter)
+        fprintf('\n Diferencia: %g, Iteraci贸n: %g \n',dif,iter)
     end
     
     if dif<tol
@@ -155,10 +155,10 @@ plot(z, Kpolicy(1,:), '-o') % k*(z)
 hold on
 plot(z, umbral(1,:),'--o')
 plot(z, umbral(2,:), '--o')
-title('Funciones de umbral y capital 髉timo, caso (b)')
+title('Funciones de umbral y capital 贸ptimo, caso (b)')
 xlabel('z','FontSize',15)
 ylabel('Nivel de capital','FontSize',15);
-legend('Capital 髉timo','Cota inferior','Cota superior')
+legend('Capital 贸ptimo','Cota inferior','Cota superior')
 
 %Policy function
 figure(5)
@@ -168,7 +168,7 @@ plot(grilla_k,Kpolicy(:,4))
 plot(grilla_k,Kpolicy(:,7))
 title('Policy Function, caso(b)')
 xlabel('K hoy','FontSize',15)
-ylabel('K ma馻na','FontSize',15);
+ylabel('K ma帽ana','FontSize',15);
 legend('z alto','z promedio','z bajo')
 
 %Value function
