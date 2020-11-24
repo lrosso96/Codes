@@ -5,7 +5,7 @@
 % proposed by Tauchen (1986). The AR(1) process takes the following form:
 % y(t) = mu + rho*y(t-1) + eps(t), where eps ~ N(0,sig^2)
 % Parts of the code are taken from the function tauchen.m written by Martin
-% Flodén.
+% FlodÃ©n.
 %
 % INPUTS
 %   mu:     scalar, intercept term of the AR(1) process
