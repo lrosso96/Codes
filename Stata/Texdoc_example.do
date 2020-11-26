@@ -4,7 +4,7 @@
 
 cd "${main}\Tables"
 
-* must add in latex preambleto remove space between () and standard errors 
+* must add in latex preamble to remove space between () and standard errors 
 * when importing tables from stata
 *\newcommand{\RemoveSpaces}[1]{%
 *  \begingroup
