@@ -15,6 +15,8 @@ cd "${main}\Tables"
 
 * to add math symbols use /$ otherwise stata will interpret $ as global.
 
+*ssc install texdoc
+
 **********************************************************
 **   Regression 1.- Growth v/s holidays, Full Sample    **
 **********************************************************
