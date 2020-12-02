@@ -13,7 +13,7 @@ cd "${main}\Tables"
 *  #1%
 *  \endgroup}
 
-* to add math symbols use /$ otherwise stata will interpret $ as global.
+* to add math symbols use \$ otherwise stata will interpret $ as global.
 
 *ssc install texdoc
 
