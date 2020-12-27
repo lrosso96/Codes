@@ -9,13 +9,18 @@
 * Edits:
 	[19/11/2020]: Created dofile
 	[23/11/2020]: Added Surveys of 2010, 2013, 2016 and 2019 + CPI data
+	[27/11/2020]: Re-defined risky/safe assets benchmark and added relevant variables for analysis
 *****************************************************************************************************/
 
 clear all
 set more off, permanently
 set maxvar 30000
 gl main "C:\Users\Lucas Rosso\Desktop\ME\Tesis\TESIS\Codigos\Stata" // this must change
-cd "${main}\Data\Raw"
+gl data "${main}\Data"
+gl raw "${main}\Data\Raw"
+
+* Directory for SCF raw data
+cd "$raw"
 
 // variables names
 * 1998: https://www.federalreserve.gov/econres/files/codebk98.txt
@@ -32,7 +37,7 @@ cd "${main}\Data\Raw"
 *********  1998 Edition  ********* 
 **********************************
 
-use p98i6
+use p98i6, clear
 
 g year = 1998
 gen wgt = X42001
@@ -144,8 +149,8 @@ gen part_mutual_risky = (mutual_risky > 0)
 gen savings_bonds_safe = X3902 +  X3910 + X3908   // face value               
 gen savings_bonds_risky = X3906 + X7634 + X7633   
 
-gen part_bonds_safe = (savings_bonds_safe)
-gen part_bonds_risky = (savings_bonds_risky)
+gen part_bonds_safe = (savings_bonds_safe > 0)
+gen part_bonds_risky = (savings_bonds_risky > 0)
 * --------------------------------------
 
 *** Life Insurance & Other assets ***
@@ -276,8 +281,8 @@ gen real_estate =  X1706*(X1705/10000)  + X1806*(X1805/10000)  + X1906*( X1905/1
 gen borrowing_housing =  X1715 *(X1705/10000) + X1815*(X1805/10000)  + X1915*(X1905/10000) + X2006 + X2016
 
 
-gen house_wealth = ( farm_value + mobile_site + value_home )  +  land_contract_lend  +  real_estate
-gen house_wealth2= ( farm_value + mobile_site + value_home )  +  real_estate
+gen house_wealth = max(( farm_value + mobile_site + value_home )  +  land_contract_lend  +  real_estate,0)
+gen house_wealth2= max(( farm_value + mobile_site + value_home )  +  real_estate,0)
 
 gen mortgages=  house_mortgage + other_loans +  land_contract_borrow + borrowing_housing
 gen mortgages2= house_mortgage + other_loans + borrowing_housing
@@ -444,17 +449,21 @@ egen rate_other_consumer_loans = rowmean(rate_c1 rate_c2 rate_c3 rate_c4 rate_c5
 * benchmark definition for safe assets
 gen Safe_assets = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS ///
                + savings_bonds_safe +  mutual_safe +  life_insurance  +   misc_assets +  annuity_safe +  trust_safe  ///
-		       + IRA_safe + pensions_safe  + other_pension_plans_safe ) 
+		       + IRA_safe + total_pension_safe ) 
 
 * safe assets net of debt (not including educational loans)
 gen net_Safe_assets = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS ///
                + savings_bonds_safe +  mutual_safe +  life_insurance  +   misc_assets +  annuity_safe +  trust_safe ///
-			   + IRA_safe + pensions_safe  +  other_pension_plans_safe )  - credit_cards_debt  - other_consumer_loans 
+			   + IRA_safe + total_pension_safe )  - credit_cards_debt  - other_consumer_loans 
 
 * safe assets net of debt (including educational loans)
 gen net_Safe_assets2 = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS /// 
                + savings_bonds_safe +  mutual_safe +  life_insurance  +   misc_assets +  annuity_safe +  trust_safe  /// 
-			   + IRA_safe + pensions_safe  +  other_pension_plans_safe )  - credit_cards_debt  - other_consumer_loans -education_loan
+			   + IRA_safe + total_pension_safe )  - credit_cards_debt  - other_consumer_loans -education_loan
+			   
+gen part_Safe_assets      = (Safe_assets > 0)
+gen part_net_Safe_assets  = (net_Safe_assets > 0)
+gen part_net_Safe_assets2 = (net_Safe_assets2 > 0)
 * --------------------------------------
 
 *** LIQUID ASSETS ***
@@ -470,35 +479,47 @@ gen net_Liquid_assets = max(0,checking_accounts + savings_accounts + money_marke
 * liquid assets net of debt (including educational loans)
 gen net_Liquid_assets2 = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS /// 
                + savings_bonds_safe +  mutual_safe  +   misc_assets +  annuity_safe +  trust_safe)  /// 
-			   - credit_cards_debt  - other_consumer_loans -education_loan			   
+			   - credit_cards_debt  - other_consumer_loans -education_loan	
+			   
+gen part_Liquid_assets      = (Liquid_assets > 0)
+gen part_net_Liquid_assets  = (net_Liquid_assets > 0)
+gen part_net_Liquid_assets2 = (net_Liquid_assets2 > 0)
 * --------------------------------------			   
 
 *** RISKY ASSETS ***			  
 * benchmark definition for risky assets
 gen Risky_assets          = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                + IRA_risky  + pensions_risky  +  other_pension_plans_risky  )
+                + IRA_risky  + total_pension_risky  )
 
 * risky assets including housing net worth				
 gen Risky_assets_houseNH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                  + IRA_risky  + pensions_risky  + other_pension_plans_risky  +  net_house_wealth)
+                  + IRA_risky  + total_pension_risky  +  net_house_wealth)
 
 * risky assets including housing gross worth				  
 gen Risky_assets_houseH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky  ///
-                  + IRA_risky  + pensions_risky  + other_pension_plans_risky  +  house_wealth)
+                  + IRA_risky  + total_pension_risky  +  house_wealth)
+				  
+gen part_Risky_assets          = (Risky_assets > 0)
+gen part_Risky_assets_houseNH  = (Risky_assets_houseNH > 0)
+gen part_Risky_assets_houseH   = (Risky_assets_houseH > 0)				  
 * --------------------------------------			   
 
-*** ILIQUID ASSETS ***
+*** ILLIQUID ASSETS ***
 * benchmark definition for illiquid assets
 gen Illiquid_assets          = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                + IRA_risky  + pensions_risky  +  other_pension_plans_risky + IRA_safe + pensions_safe  + other_pension_plans_safe  )
+                + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  life_insurance)
 
 * illiquid assets including housing net worth				
 gen Illiquid_assets_houseNH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                  + IRA_risky  + pensions_risky  + other_pension_plans_risky + IRA_safe + pensions_safe  + other_pension_plans_safe  +  net_house_wealth)
+                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  net_house_wealth +  life_insurance)
 
 * illiquid assets including housing gross worth				  
 gen Illiquid_assets_houseH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky  ///
-                  + IRA_risky  + pensions_risky  + other_pension_plans_risky + IRA_safe + pensions_safe  + other_pension_plans_safe  +  house_wealth)
+                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  house_wealth +  life_insurance)
+				  
+gen part_Illiquid_assets          = (Illiquid_assets > 0)
+gen part_Illiquid_assets_houseNH  = (Illiquid_assets_houseNH > 0)
+gen part_Illiquid_assets_houseH   = (Illiquid_assets_houseH > 0)					  
 * --------------------------------------
 
 *** FINANCIAL WEALTH ***		  
@@ -535,7 +556,7 @@ gen Retirement_Accounts_R= IRA_risky + pensions_risky + other_pension_plans_risk
 gen old_accounts=  Retirement_Accounts_S + Retirement_Accounts_R
 gen share_old =   Retirement_Accounts_R /old_accounts 
  
-cd "${main}\Data"
+cd "$data"
 save scf98.dta, replace 
 
 *********************************************************************************
@@ -549,7 +570,7 @@ save scf98.dta, replace
 *********  2001 Edition  ********* 
 **********************************
 
-cd "${main}\Data\Raw"
+cd "$raw"
 use p01i6, clear
 
 g year = 2001
@@ -660,8 +681,8 @@ gen part_mutual_risky = (mutual_risky > 0)
 gen savings_bonds_safe = X3902 +  X3910 + X3908   // face value               
 gen savings_bonds_risky = X3906 + X7634 + X7633   
 
-gen part_bonds_safe = (savings_bonds_safe)
-gen part_bonds_risky = (savings_bonds_risky)
+gen part_bonds_safe = (savings_bonds_safe > 0)
+gen part_bonds_risky = (savings_bonds_risky > 0)
 * --------------------------------------
 
 *** Life Insurance & Other assets ***
@@ -792,8 +813,8 @@ gen real_estate =  X1706*(X1705/10000)  + X1806*(X1805/10000)  + X1906*( X1905/1
 gen borrowing_housing =  X1715 *(X1705/10000) + X1815*(X1805/10000)  + X1915*(X1905/10000) + X2006 + X2016
 
 
-gen house_wealth = ( farm_value + mobile_site + value_home )  +  land_contract_lend  +  real_estate
-gen house_wealth2= ( farm_value + mobile_site + value_home )  +  real_estate
+gen house_wealth = max(( farm_value + mobile_site + value_home )  +  land_contract_lend  +  real_estate,0)
+gen house_wealth2= max(( farm_value + mobile_site + value_home )  +  real_estate,0)
 
 gen mortgages=  house_mortgage + other_loans +  land_contract_borrow + borrowing_housing
 gen mortgages2= house_mortgage + other_loans + borrowing_housing
@@ -1009,6 +1030,10 @@ gen net_Safe_assets = max(0,checking_accounts + savings_accounts + money_market_
 gen net_Safe_assets2 = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS /// 
                + savings_bonds_safe +  mutual_safe +  life_insurance  +   misc_assets +  annuity_safe +  trust_safe  /// 
 			   + IRA_safe + total_pension_safe )  - credit_cards_debt  - other_consumer_loans -education_loan
+			   
+gen part_Safe_assets      = (Safe_assets > 0)
+gen part_net_Safe_assets  = (net_Safe_assets > 0)
+gen part_net_Safe_assets2 = (net_Safe_assets2 > 0)			   
 * --------------------------------------
 
 *** LIQUID ASSETS ***
@@ -1025,6 +1050,10 @@ gen net_Liquid_assets = max(0,checking_accounts + savings_accounts + money_marke
 gen net_Liquid_assets2 = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS /// 
                + savings_bonds_safe +  mutual_safe  +   misc_assets +  annuity_safe +  trust_safe)  /// 
 			   - credit_cards_debt  - other_consumer_loans -education_loan			   
+			   
+gen part_Liquid_assets      = (Liquid_assets > 0)
+gen part_net_Liquid_assets  = (net_Liquid_assets > 0)
+gen part_net_Liquid_assets2 = (net_Liquid_assets2 > 0)			   
 * --------------------------------------			   
 
 *** RISKY ASSETS ***			  
@@ -1039,20 +1068,28 @@ gen Risky_assets_houseNH = max(0, brokerage  +   stocks  + mutual_risky + annuit
 * risky assets including housing gross worth				  
 gen Risky_assets_houseH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky  ///
                   + IRA_risky  + total_pension_risky  +  house_wealth)
+				  
+gen part_Risky_assets          = (Risky_assets > 0)
+gen part_Risky_assets_houseNH  = (Risky_assets_houseNH > 0)
+gen part_Risky_assets_houseH   = (Risky_assets_houseH > 0)					  
 * --------------------------------------			   
 
-*** ILIQUID ASSETS ***
+*** ILLIQUID ASSETS ***
 * benchmark definition for illiquid assets
 gen Illiquid_assets          = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  )
+                + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  life_insurance)
 
 * illiquid assets including housing net worth				
 gen Illiquid_assets_houseNH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  net_house_wealth)
+                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  net_house_wealth +  life_insurance)
 
 * illiquid assets including housing gross worth				  
 gen Illiquid_assets_houseH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky  ///
-                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  house_wealth)
+                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  house_wealth +  life_insurance)
+				  
+gen part_Illiquid_assets          = (Illiquid_assets > 0)
+gen part_Illiquid_assets_houseNH  = (Illiquid_assets_houseNH > 0)
+gen part_Illiquid_assets_houseH   = (Illiquid_assets_houseH > 0)				 
 * --------------------------------------
 
 *** FINANCIAL WEALTH ***		  
@@ -1089,7 +1126,7 @@ gen Retirement_Accounts_R= IRA_risky + total_pension_risky
 gen old_accounts=  Retirement_Accounts_S + Retirement_Accounts_R
 gen share_old =   Retirement_Accounts_R /old_accounts 
  
-cd "${main}\Data"
+cd "$data"
 save scf01.dta, replace 
 
 
@@ -1104,7 +1141,7 @@ save scf01.dta, replace
 *********  2004 - 2016   ********* 
 **********************************
 
-cd "${main}\Data\Raw"
+cd "$raw"
 
 foreach var in 04 07 10 13 16 {
 	use p`var'i6.dta, clear
@@ -1220,8 +1257,8 @@ gen part_mutual_risky = (mutual_risky > 0)
 gen savings_bonds_safe = X3902 +  X3910 + X3908   // face value               
 gen savings_bonds_risky = X3906 + X7634 + X7633   
 
-gen part_bonds_safe = (savings_bonds_safe)
-gen part_bonds_risky = (savings_bonds_risky)
+gen part_bonds_safe = (savings_bonds_safe > 0)
+gen part_bonds_risky = (savings_bonds_risky > 0)
 * --------------------------------------
 
 *** Life Insurance & Other assets ***
@@ -1351,12 +1388,15 @@ else if `var' == 13 | `var' == 16  {
 	gen borrowing_housing =  X1715 *(X1705/10000) + X1815*(X1805/10000) + X2006 + X2016
 }
 
-gen house_wealth = ( farm_value + mobile_site + value_home )  +  land_contract_lend  +  real_estate
-gen house_wealth2= ( farm_value + mobile_site + value_home )  +  real_estate
+gen house_wealth = max(( farm_value + mobile_site + value_home )  +  land_contract_lend  +  real_estate,0)
+gen house_wealth2= max(( farm_value + mobile_site + value_home )  +  real_estate,0)
+
 gen mortgages=  house_mortgage + other_loans +  land_contract_borrow + borrowing_housing
 gen mortgages2= house_mortgage + other_loans + borrowing_housing
+
 gen net_house_wealth = house_wealth-mortgages
 gen net_house_wealth2 = house_wealth2-mortgages2
+
 gen owner=0 if net_house_wealth==0
 replace owner=1 if owner==.
 * --------------------------------------
@@ -1573,6 +1613,10 @@ gen net_Safe_assets = max(0,checking_accounts + savings_accounts + money_market_
 gen net_Safe_assets2 = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS /// 
                + savings_bonds_safe +  mutual_safe +  life_insurance  +   misc_assets +  annuity_safe +  trust_safe  /// 
 			   + IRA_safe + total_pension_safe )  - credit_cards_debt  - other_consumer_loans -education_loan
+			   
+gen part_Safe_assets      = (Safe_assets > 0)
+gen part_net_Safe_assets  = (net_Safe_assets > 0)
+gen part_net_Safe_assets2 = (net_Safe_assets2 > 0)			   
 * --------------------------------------
 
 *** LIQUID ASSETS ***
@@ -1588,7 +1632,11 @@ gen net_Liquid_assets = max(0,checking_accounts + savings_accounts + money_marke
 * liquid assets net of debt (including educational loans)
 gen net_Liquid_assets2 = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS /// 
                + savings_bonds_safe +  mutual_safe  +   misc_assets +  annuity_safe +  trust_safe)  /// 
-			   - credit_cards_debt  - other_consumer_loans -education_loan			   
+			   - credit_cards_debt  - other_consumer_loans -education_loan		
+			   
+gen part_Liquid_assets      = (Liquid_assets > 0)
+gen part_net_Liquid_assets  = (net_Liquid_assets > 0)
+gen part_net_Liquid_assets2 = (net_Liquid_assets2 > 0)			   
 * --------------------------------------			   
 
 *** RISKY ASSETS ***			  
@@ -1603,20 +1651,28 @@ gen Risky_assets_houseNH = max(0, brokerage  +   stocks  + mutual_risky + annuit
 * risky assets including housing gross worth				  
 gen Risky_assets_houseH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky  ///
                   + IRA_risky  + total_pension_risky  +  house_wealth)
+				  
+gen part_Risky_assets          = (Risky_assets > 0)
+gen part_Risky_assets_houseNH  = (Risky_assets_houseNH > 0)
+gen part_Risky_assets_houseH   = (Risky_assets_houseH > 0)					  
 * --------------------------------------			   
 
-*** ILIQUID ASSETS ***
+*** ILLIQUID ASSETS ***
 * benchmark definition for illiquid assets
 gen Illiquid_assets          = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  )
+                + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe+  life_insurance  )
 
 * illiquid assets including housing net worth				
 gen Illiquid_assets_houseNH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  net_house_wealth)
+                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  net_house_wealth +  life_insurance)
 
 * illiquid assets including housing gross worth				  
 gen Illiquid_assets_houseH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky  ///
-                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  house_wealth)
+                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  house_wealth +  life_insurance)
+				  
+gen part_Illiquid_assets          = (Illiquid_assets > 0)
+gen part_Illiquid_assets_houseNH  = (Illiquid_assets_houseNH > 0)
+gen part_Illiquid_assets_houseH   = (Illiquid_assets_houseH > 0)					  
 * --------------------------------------
 
 *** FINANCIAL WEALTH ***		  
@@ -1653,9 +1709,9 @@ gen Retirement_Accounts_R= IRA_risky + total_pension_risky
 gen old_accounts=  Retirement_Accounts_S + Retirement_Accounts_R
 gen share_old =   Retirement_Accounts_R /old_accounts 
  
-cd "${main}\Data"
+cd "$data"
 save scf`var'.dta, replace 
-cd "${main}\Data\Raw"
+cd "$raw"
 }
 
 
@@ -1666,7 +1722,7 @@ cd "${main}\Data\Raw"
 
 * equal to 2016, but variables are all with "x" instead of "X".
 
-cd "${main}\Data\Raw"
+cd "$raw"
 
 use p19i6.dta, clear
 	
@@ -1778,13 +1834,13 @@ gen part_mutual_risky = (mutual_risky > 0)
 gen savings_bonds_safe = x3902 +  x3910 + x3908   // face value               
 gen savings_bonds_risky = x3906 + x7634 + x7633   
 
-gen part_bonds_safe = (savings_bonds_safe)
-gen part_bonds_risky = (savings_bonds_risky)
+gen part_bonds_safe = (savings_bonds_safe > 0)
+gen part_bonds_risky = (savings_bonds_risky > 0)
 * --------------------------------------
 
 *** Life Insurance & Other assets ***
 gen life_insurance = max(0,x4006 - x4010)
-gen misc_assets = max(0,x4018 + x4022 + x4026 +  x4030   - x4032) 
+gen misc_assets = max(0,x4018 + x4022 + x4026 +  x4030   - x4032)
 
 gen part_life_insurance = (life_insurance>0)
 gen part_misc_assets    = (misc_assets>0)
@@ -1895,8 +1951,8 @@ gen land_contract_borrow = x1318 + x1337 + x1342
 gen real_estate =  x1706*(x1705/10000)  + x1806*(x1805/10000) + x2002 + x2012       
 gen borrowing_housing =  x1715 *(x1705/10000) + x1815*(x1805/10000) + x2006 + x2016
 
-gen house_wealth = ( farm_value + mobile_site + value_home )  +  land_contract_lend  +  real_estate
-gen house_wealth2= ( farm_value + mobile_site + value_home )  +  real_estate
+gen house_wealth = max(( farm_value + mobile_site + value_home )  +  land_contract_lend  +  real_estate,0)
+gen house_wealth2= max(( farm_value + mobile_site + value_home )  +  real_estate,0)
 gen mortgages=  house_mortgage + other_loans +  land_contract_borrow + borrowing_housing
 gen mortgages2= house_mortgage + other_loans + borrowing_housing
 gen net_house_wealth = house_wealth-mortgages
@@ -2050,6 +2106,10 @@ gen net_Safe_assets = max(0,checking_accounts + savings_accounts + money_market_
 gen net_Safe_assets2 = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS /// 
                + savings_bonds_safe +  mutual_safe +  life_insurance  +   misc_assets +  annuity_safe +  trust_safe  /// 
 			   + IRA_safe + total_pension_safe )  - credit_cards_debt  - other_consumer_loans -education_loan
+			   
+gen part_Safe_assets      = (Safe_assets > 0)
+gen part_net_Safe_assets  = (net_Safe_assets > 0)
+gen part_net_Safe_assets2 = (net_Safe_assets2 > 0)			   
 * --------------------------------------
 
 *** LIQUID ASSETS ***
@@ -2065,7 +2125,11 @@ gen net_Liquid_assets = max(0,checking_accounts + savings_accounts + money_marke
 * liquid assets net of debt (including educational loans)
 gen net_Liquid_assets2 = max(0,checking_accounts + savings_accounts + money_market_accounts  + CDS /// 
                + savings_bonds_safe +  mutual_safe  +   misc_assets +  annuity_safe +  trust_safe)  /// 
-			   - credit_cards_debt  - other_consumer_loans -education_loan			   
+			   - credit_cards_debt  - other_consumer_loans -education_loan			
+			   
+gen part_Liquid_assets      = (Liquid_assets > 0)
+gen part_net_Liquid_assets  = (net_Liquid_assets > 0)
+gen part_net_Liquid_assets2 = (net_Liquid_assets2 > 0)			   
 * --------------------------------------			   
 
 *** RISKY ASSETS ***			  
@@ -2080,20 +2144,28 @@ gen Risky_assets_houseNH = max(0, brokerage  +   stocks  + mutual_risky + annuit
 * risky assets including housing gross worth				  
 gen Risky_assets_houseH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky  ///
                   + IRA_risky  + total_pension_risky  +  house_wealth)
+				  
+gen part_Risky_assets          = (Risky_assets > 0)
+gen part_Risky_assets_houseNH  = (Risky_assets_houseNH > 0)
+gen part_Risky_assets_houseH   = (Risky_assets_houseH > 0)					  
 * --------------------------------------			   
 
-*** ILIQUID ASSETS ***
+*** ILLIQUID ASSETS ***
 * benchmark definition for illiquid assets
 gen Illiquid_assets          = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  )
+                + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe +  life_insurance  )
 
 * illiquid assets including housing net worth				
 gen Illiquid_assets_houseNH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky ///
-                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  net_house_wealth)
+                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  net_house_wealth +  life_insurance)
 
 * illiquid assets including housing gross worth				  
 gen Illiquid_assets_houseH = max(0, brokerage  +   stocks  + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky  ///
-                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  house_wealth)
+                  + IRA_risky  + total_pension_risky + IRA_safe + total_pension_safe  +  house_wealth +  life_insurance)
+				  
+gen part_Illiquid_assets          = (Illiquid_assets > 0)
+gen part_Illiquid_assets_houseNH  = (Illiquid_assets_houseNH > 0)
+gen part_Illiquid_assets_houseH   = (Illiquid_assets_houseH > 0)				  
 * --------------------------------------
 
 *** FINANCIAL WEALTH ***		  
@@ -2130,7 +2202,7 @@ gen Retirement_Accounts_R= IRA_risky + total_pension_risky
 gen old_accounts=  Retirement_Accounts_S + Retirement_Accounts_R
 gen share_old =   Retirement_Accounts_R /old_accounts 
  
-cd "${main}\Data"
+cd "$data"
 save scf19.dta, replace 
 
 *********************************************************************************
@@ -2171,7 +2243,13 @@ Illiquid_assets_houseH Illiquid_assets_houseNH Illiquid_assets Risky_assets_hous
 net_Liquid_assets Liquid_assets net_Safe_assets2 net_Safe_assets Safe_assets checking_accounts savings_accounts money_market_accounts ///
 CDS savings_bonds_safe mutual_safe life_insurance misc_assets annuity_safe trust_safe IRA_safe total_pension_safe credit_cards_debt /// 
 other_consumer_loans education_loan brokerage stocks mutual_risky annuity_risky savings_bonds_risky trust_risky ///
-IRA_risky total_pension_risky net_house_wealth house_wealth income educ male children marital
+IRA_risky total_pension_risky net_house_wealth house_wealth income educ male children marital age part_checking_accounts part_savings_accounts ///
+part_money_market_accounts part_CDS part_mutual_safe part_mutual_risky part_bonds_safe part_bonds_risky part_life_insurance part_misc_assets part_stocks part_IRA_safe ///
+part_IRA_risky part_brokerage part_annuity_safe part_annuity_risky part_trust_safe part_trust_risky house_wealth2 mortgages mortgages2 ///
+owner part_pension_safe part_pension_risky part_other_consumer_loans part_education_loan part_credit_cards_debt part_Safe_assets part_net_Safe_assets ///
+part_net_Safe_assets2 part_Liquid_assets part_net_Liquid_assets part_net_Liquid_assets2 part_Risky_assets part_Risky_assets_houseNH part_Risky_assets_houseH ///
+part_Illiquid_assets part_Illiquid_assets_houseNH part_Illiquid_assets_houseH 
+   
 
 local deflator cpi
 local variables_to_deflate old_accounts Retirement_Accounts_R Retirement_Accounts_S ///
@@ -2180,11 +2258,208 @@ Illiquid_assets_houseH Illiquid_assets_houseNH Illiquid_assets Risky_assets_hous
 net_Liquid_assets Liquid_assets net_Safe_assets2 net_Safe_assets Safe_assets checking_accounts savings_accounts money_market_accounts ///
 CDS savings_bonds_safe mutual_safe life_insurance misc_assets annuity_safe trust_safe IRA_safe total_pension_safe credit_cards_debt /// 
 other_consumer_loans education_loan brokerage stocks mutual_risky annuity_risky savings_bonds_risky trust_risky ///
-IRA_risky total_pension_risky net_house_wealth house_wealth income 
+IRA_risky total_pension_risky net_house_wealth house_wealth income house_wealth2 mortgages mortgages2
 foreach var of varlist `variables_to_deflate '{
 qui replace `var' = `var'/`deflator'
 label var `var' "``var' deflated by cpi"
 }
 
+*********************************************
+*** EDITING DATA AND GENERATING VARIABLES ***
+*********************************************
 
+* pension data reported -1 for error
+replace total_pension_safe  = max(total_pension_safe,0)
+replace total_pension_risky = max(total_pension_risky,0) 
+
+
+*** SAFE ASSETS ***			  
+* safe assets including retirement accounts 
+rename Safe_assets Safe_assets_RA
+
+* New benchmark definition: no housing and no retirement accounts.
+gen Safe_assets = Safe_assets - IRA_safe - total_pension_safe  
+
+* safe assets net of debt (not including educational loans)
+replace net_Safe_assets = net_Safe_assets -IRA_safe - total_pension_safe
+
+* safe assets net of debt (including educational loans)
+replace net_Safe_assets2 = net_Safe_assets -IRA_safe - total_pension_safe
+
+gen part_Safe_assets_RA       = (Safe_assets_RA > 0)			   
+replace part_Safe_assets      = (Safe_assets > 0)
+replace part_net_Safe_assets  = (net_Safe_assets > 0)
+replace part_net_Safe_assets2 = (net_Safe_assets2 > 0)	
+* ---------------------------------------------
+
+*** RISKY ASSETS ***	
+* risky/illiquid assets including retirement accounts 
+rename Risky_assets Risky_assets_RA
+
+* risky assets including retirement accounts + housing
+rename Risky_assets_houseNH Risky_assets_houseNH_RA
+		  
+* New benchmark definition: no housing and no retirement accounts.
+gen Risky_assets = Risky_assets_RA - IRA_risky - total_pension_risky  
+
+* risky assets including housing net worth				
+gen Risky_assets_houseNH = Risky_assets_houseNH - IRA_risky - total_pension_risky
+
+* risky assets including housing gross worth				  
+replace Risky_assets_houseH = Risky_assets_houseH - IRA_risky - total_pension_risky
+
+gen part_Risky_assets_RA           = (Risky_assets_RA > 0)		  
+gen part_Risky_assets_houseNH_RA   = (Risky_assets_houseNH_RA >0)
+replace part_Risky_assets          = (Risky_assets > 0)
+replace part_Risky_assets_houseNH  = (Risky_assets_houseNH > 0)
+replace part_Risky_assets_houseH   = (Risky_assets_houseH > 0)					  
+* --------------------------------------
+
+*** NEW WEALTH DEFINITIONS ***		
+*stock  
+replace financial_wealth = Safe_assets + Risky_assets 
+replace financial_wealth_houseH = Safe_assets + Risky_assets_houseH 
+replace financial_wealth_houseNH = Safe_assets + Risky_assets_houseNH 
+replace financial_wealth_debt = net_Safe_assets + Risky_assets 
+replace financial_wealth_debt2 = net_Safe_assets2 + Risky_assets 
+gen financial_wealth_RA = Safe_assets_RA + Risky_assets_RA
+gen financial_wealth_NH_RA = Safe_assets_RA + Risky_assets_houseNH_RA
+
+*participation rate
+gen part_financial_wealth = (financial_wealth>0)
+* --------------------------------------
+
+*** NEW PORTFOLIO SHARES ***
+* risky/safe
+replace risky_share         = max(0,Risky_assets/financial_wealth)  
+replace portfolio_houseH    = max(0,(Risky_assets_houseH)/financial_wealth_houseH)
+replace portfolio_houseNH   = max(0,(Risky_assets_houseNH)/financial_wealth_houseNH)  
+replace portfolio_houseHNH  = max(0,(Risky_assets_houseH)/financial_wealth_houseNH) 
+replace portfolio_debt      = max(0,(Risky_assets)/financial_wealth_debt)  
+replace portfolio_debt2     = max(0,(Risky_assets)/financial_wealth_debt2)  
+gen     risky_share_RA      = max(0, (Risky_assets_RA)/financial_wealth_RA)
+gen     risky_share_NH_RA   = max(0, (Risky_assets_houseNH_RA)/financial_wealth_NH_RA)
+gen cond_risky_share        = max(0,Risky_assets/financial_wealth)  if Risky_assets>0
+
+* --------------------------------------
+
+
+*** PERCENTILES FOR DIFFERENT WEALTH DEFINITIONS ***
+xtile FW_percentile        = financial_wealth [aw=wgt], nquantiles(100)
+xtile FW_percentile_H      = financial_wealth_houseH [aw=wgt], nquantiles(100)
+xtile FW_percentile_NH     = financial_wealth_houseH [aw=wgt], nquantiles(100)
+xtile FW_percentile_RA     = financial_wealth_RA [aw=wgt], nquantiles(100)
+xtile FW_percentile_NH_RA  = financial_wealth_NH_RA [aw=wgt], nquantiles(100)
+xtile FW_percentile_inc    = income [aw=wgt], nquantiles(100)
+xtile FW_old_acc           = old_accounts [aw=wgt], nquantiles(100)  
+* --------------------------------------
+
+*** GROUPING ASSETS IN BROADER CATEGORIES ***
+* Total Pension and IRA
+gen total_pension = total_pension_risky + total_pension_safe
+gen total_IRA = IRA_risky + IRA_safe
+gen part_total_pension = (total_pension>0)
+gen part_total_IRA     = (total_IRA>0)
+
+gen stocks_plus = max(0,(stocks + mutual_risky + annuity_risky + savings_bonds_risky +  trust_risky + brokerage)/financial_wealth_NH_RA)
+
+* Renaming bonds
+rename savings_bonds_risky bonds_risky
+rename savings_bonds_safe bonds_safe
+
+
+*** SPECIFIC ASSETS SHARES AND PART. RATES ***
+gen part_net_house_wealth = (net_house_wealth!=0)
+gen part_old_accounts = (old_accounts>0)
+
+gen house_share  = max(net_house_wealth/financial_wealth_NH_RA, 0)
+gen stocks_share = max(stocks/financial_wealth_NH_RA, 0)
+gen RA_share     = max(old_accounts/financial_wealth_NH_RA, 0)
+* --------------------------------------
+
+*** VARIABLE MEANS ACROSS WEALTH DIST. ***
+*local preallocation illiquid_share part_Illiquid_assets illiquid_share_houseH part_Illiquid_assets_houseH illiquid_share_houseNH ///
+*part_Illiquid_assets_houseNH risky_share part_Risky_assets house_wealth_share house_wealthNH_share stocks_share
+
+local preallocation risky_share part_Risky_assets portfolio_houseNH part_Risky_assets_houseNH risky_share_RA part_Risky_assets_RA ///
+risky_share_NH_RA part_Risky_assets_houseNH_RA house_share stocks_share RA_share share_old stocks_plus cond_risky_share
+
+foreach var of varlist `preallocation' {
+qui gen `var'_p = .
+label var `var'_p "``var' across wealth distribution"
+}
+
+qui forval i = 1/100 {
+	* Illiquid Asset
+/*	
+	sum illiquid_share [aw=wgt] if FW_percentile == `i', detail
+	replace illiquid_share_p = r(mean) if FW_percentile == `i'
+	sum part_Illiquid_assets [aw=wgt] if FW_percentile == `i', detail
+	replace part_Illiquid_assets_p = r(mean) if FW_percentile == `i'
+	
+	sum illiquid_share_houseH [aw=wgt] if FW_percentileH == `i', detail
+	replace illiquid_share_houseH_p = r(mean) if FW_percentileH == `i'
+	sum part_Illiquid_assets_houseH [aw=wgt] if FW_percentileH == `i', detail
+	replace part_Illiquid_assets_houseH_p = r(mean) if FW_percentileH == `i'
+	
+	sum illiquid_share_houseNH [aw=wgt] if FW_percentileNH == `i', detail
+	replace illiquid_share_houseNH_p = r(mean) if FW_percentileNH == `i'
+	sum part_Illiquid_assets_houseNH [aw=wgt] if FW_percentileNH == `i', detail
+	replace part_Illiquid_assets_houseNH_p = r(mean) if FW_percentileNH == `i'
+*/
+	
+	* Risky Asset
+	sum risky_share [aw=wgt] if FW_percentile == `i', detail
+	replace risky_share_p = r(mean) if FW_percentile == `i'
+	
+	sum part_Risky_assets [aw=wgt] if FW_percentile == `i', detail
+	replace part_Risky_assets_p = r(mean) if FW_percentile == `i'
+	
+	sum cond_risky_share [aw=wgt] if FW_percentile == `i', detail
+	replace cond_risky_share_p = r(mean) if FW_percentile == `i'
+	
+	* Risky Asset + housing
+	sum portfolio_houseNH [aw=wgt] if FW_percentile_NH == `i', detail
+	replace portfolio_houseNH_p = r(mean) if FW_percentile_NH == `i'
+	
+	sum part_Risky_assets_houseNH [aw=wgt] if FW_percentile_NH == `i', detail
+	replace part_Risky_assets_houseNH_p = r(mean) if FW_percentile_NH == `i'
+	
+	* Risky Asset + Retirement Accounts
+	sum risky_share_RA [aw=wgt] if FW_percentile_RA == `i', detail
+	replace risky_share_RA_p = r(mean) if FW_percentile_RA == `i'
+	
+	sum part_Risky_assets_RA [aw=wgt] if FW_percentile_RA == `i', detail
+	replace part_Risky_assets_RA_p = r(mean) if FW_percentile_RA == `i'
+	
+	* Risky Asset + housing + Retirement Accounts
+	sum risky_share_NH_RA [aw=wgt] if FW_percentile_NH_RA == `i', detail
+	replace risky_share_NH_RA_p = r(mean) if FW_percentile_NH_RA == `i'
+	
+	sum part_Risky_assets_houseNH_RA [aw=wgt] if FW_percentile_NH_RA == `i', detail
+	replace part_Risky_assets_houseNH_RA_p = r(mean) if FW_percentile_NH_RA == `i'
+	
+	* Housing
+	sum house_share [aw=wgt] if FW_percentile_NH_RA == `i', detail
+	replace house_share_p = r(mean) if FW_percentile_NH_RA == `i'
+	
+	* Stocks
+	sum stocks_share [aw=wgt] if FW_percentile_NH_RA == `i', detail
+	replace stocks_share_p = r(mean) if FW_percentile_NH_RA == `i'
+	
+	* Retirement Accounts 
+	sum RA_share [aw=wgt] if FW_percentile_NH_RA == `i', detail
+	replace RA_share_p = r(mean) if FW_percentile_NH_RA == `i'
+	
+	* Stocks + other risky
+	sum stocks_plus [aw=wgt] if FW_percentile_NH_RA == `i', detail
+	replace stocks_plus_p = r(mean) if FW_percentile_NH_RA == `i'
+	
+	* Risky Share for RA
+	sum share_old [aw=wgt] if FW_old_acc == `i', detail
+	replace share_old_p = r(mean) if FW_old_acc == `i'
+}
+
+
+*** SAVING DATA ***
 save SCF_Data.dta, replace
