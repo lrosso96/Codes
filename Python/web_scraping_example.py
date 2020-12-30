@@ -56,20 +56,9 @@ time.sleep(3)
 html = browser.page_source
 soup = BeautifulSoup(html, "lxml")
 
-print(len(soup.find_all("table")))
-table=soup.find("table", class_="table table--left table--inner-borders-rows table--full-width table--sticky table--holidaycountry").tbody
-print(table)
-
-table2 = table.select("[class=showrow]")
-print(table2)
-
 browser.quit()
 
-Chile = []
-for tr_tag in table2:
-    print(tr_tag.text)
-    Chile.append(tr_tag.text)
-print(Chile)
+table=soup.find("table", class_="table table--left table--inner-borders-rows table--full-width table--sticky table--holidaycountry").tbody
 
 date = [] # date of the holiday day, month
 dow  = [] # day of the week
@@ -93,5 +82,60 @@ for i in range(1,100):
     
 import pandas as pd
 df = pd.DataFrame({'date':date,'dow':dow,'name':name,'type':det})
+df.to_csv(path_or_buf='data.csv',na_rep='.',sep=',',index=False)
+print(df)
+
+#final_data = []
+date = [] # date of the holiday day, month
+dow  = [] # day of the week
+name = [] # name of the holiday
+det  = [] # type (e.g. national holiday)
+year = [] 
+country = [] 
+# Now for all countries in every year
+for i in URLS:
+    URL="https://www.timeanddate.com%s"%i
+    print(URL)
+    browser = webdriver.Chrome()
+    browser.get(URL)
+    time.sleep(30)
+    html = browser.page_source
+    soup = BeautifulSoup(html, "lxml")
+    browser.quit()
+    try:
+        table=soup.find("table", class_="table table--left table--inner-borders-rows table--full-width table--sticky table--holidaycountry").tbody
+
+        for j in range(1,365):
+            try:
+                date_ = table.find_all("tr", class_="showrow")[j].find("th", class_="nw")
+                date.append(date_.text)
+        
+                dow_ = table.find_all("tr", class_="showrow")[j].find("td", class_="nw")
+                dow.append(dow_.text)
+        
+                name_ = table.find_all("tr", class_="showrow")[j].find_all("td")[1]
+                name.append(name_.text)
+        
+                det_ = table.find_all("tr", class_="showrow")[j].find_all("td")[2]
+                det.append(det_.text)
+                
+                year.append(URL[-10:-6]) # URL always ends with '/year?hol=9'
+                
+                start = URL.find("s/") # path always of the form '/holidays/country/'
+                end   = URL.find("/2")
+                country.append(URL[start+2:end])
+            except IndexError:
+                break
+        
+        #final_data.append(date, dow, name, det)    
+        #df = pd.DataFrame({'date':date,'dow':dow,'name':name,'type':det}, columns=None)
+        #final_data.append(df)
+    except: 
+        print(soup.find("section", class_="table-data__table").find("p").text)
+        pass      
+    #DATA = pd.DataFrame(final_data)
+
+df = pd.DataFrame({'country':country,'year':year,'date':date,'dow':dow,'name':name,'type':det})    
+df.to_csv(path_or_buf='data.csv',na_rep='.',sep=',',index=False)
 
 print(df)
