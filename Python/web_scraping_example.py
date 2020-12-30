@@ -137,5 +137,3 @@ for i in URLS:
 
 df = pd.DataFrame({'country':country,'year':year,'date':date,'dow':dow,'name':name,'type':det})    
 df.to_csv(path_or_buf='data.csv',na_rep='.',sep=',',index=False)
-
-print(df)
