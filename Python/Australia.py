@@ -92,5 +92,3 @@ weekend2 = weekend.find_all("h4")[1].text
 aux = str.split(weekend2)
 weekend2 = aux[2]       
 print(weekend2)    
-
-print(aux)
