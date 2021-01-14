@@ -128,7 +128,7 @@ for o in range(8,240):
             weekend2.append(weekend2_) # only one weekend day
         except:
             weekend2_ = aux1[2] # only one weekend day
-            weekend1.append(weekend1_)
+            weekend2.append(weekend2_)
     
     # holidays                
     # try:
