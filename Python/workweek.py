@@ -156,7 +156,6 @@ df = pd.DataFrame({
     'working_days':working_days,
     'weekend1':weekend1,
     'weekend2':weekend2,
-    'holidays':holidays
 })
 
 print(df)
