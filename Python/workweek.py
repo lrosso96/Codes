@@ -103,11 +103,15 @@ for o in range(8,240):
         weekend1_aux = driver.find_element_by_xpath("//*[@id='weekday_resall']/div[1]/div/div[2]/h4[1]").text
         aux1 = str.split(weekend1_aux)
         weekend1_ = aux1[2]
+        if weekend1_[-1] == "s":
+            weekend1_ = weekend1_[0:len(weekend1_)-1]
         weekend1.append(weekend1_)
     except:
         weekend1_aux = driver.find_element_by_xpath("//*[@id='weekday_resall']/div[2]/div/div[2]/h4[1]").text
         aux1 = str.split(weekend1_aux)
         weekend1_ = aux1[2]
+        if weekend1_[-1] == "s":
+            weekend1_ = weekend1_[0:len(weekend1_)-1]
         weekend1.append(weekend1_)
         
     time.sleep(2)
@@ -119,15 +123,21 @@ for o in range(8,240):
         weekend2_ = aux2[2]
         if weekend2_ == "holidays:":
             weekend2_ = aux1[2]
+        if weekend2_[-1] == "s":
+            weekend2_ = weekend2_[0:len(weekend2_)-1]
         weekend2.append(weekend2_) 
     except:
         try:
             weekend2_aux = driver.find_element_by_xpath("//*[@id='weekday_resall']/div[2]/div/div[2]/h4[2]").text
             aux2 = str.split(weekend2_aux)
             weekend2_ = aux2[2]
-            weekend2.append(weekend2_) # only one weekend day
+            if weekend2_[-1] == "s":
+                weekend2_ == weekend2_[0:len(weekend2_)-1]
+            weekend2.append(weekend2_)
         except:
             weekend2_ = aux1[2] # only one weekend day
+            if weekend2_[-1] == "s":
+                weekend2_ == weekend2_[0:len(weekend2_)-1]
             weekend2.append(weekend2_)
     
     # holidays                
@@ -158,18 +168,10 @@ df = pd.DataFrame({
     'weekend2':weekend2,
 })
 
+# directory to store data
+chdir ("C:/Users/LR/Desktop/ME/Ayudantía Wagner/Holidays and Growth/Data")
+
 print(df)
 
 df.to_csv(path_or_buf='workweek.csv',na_rep='.',sep=',',index=False)
 
-# print(all_options)
-
-# print(country_aux)
-
-
-# print(option)
-# print(country)
-# print(working_days)
-# print(weekend2)
-
-# print(country_list)
