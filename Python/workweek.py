@@ -159,6 +159,17 @@ for o in range(8,240):
     time.sleep(5)
         
 driver.close()
+
+# weekdays as a number (Monday 0 - Sunday 6)
+wk1 = []
+for i in weekend1:
+    wk1_ = time.strptime(i, "%A").tm_wday
+    wk1.append(wk1_)
+    
+wk2 = []
+for i in weekend2:
+    wk2_ = time.strptime(i, "%A").tm_wday
+    wk2.append(wk2_)
         
 df = pd.DataFrame({
     'country':country,
@@ -166,6 +177,8 @@ df = pd.DataFrame({
     'working_days':working_days,
     'weekend1':weekend1,
     'weekend2':weekend2,
+    'wk1': wk1,
+    'wk2': wk2,
 })
 
 # directory to store data
