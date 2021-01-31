@@ -27,6 +27,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 
+import locale
+locale.setlocale(locale.LC_TIME, "es_ES")
+'es_ES'
+
 url = "https://www.timeanddate.com/holidays/"
 page = requests.get(url, 'html.parser')
 
@@ -64,7 +68,7 @@ browser.quit()
 table=soup.find("table", class_="table table--left table--inner-borders-rows table--full-width table--sticky table--holidaycountry").tbody
 
 date = [] # date of the holiday day, month
-dow  = [] # day of the week
+dow  = [] # day of the week (Monday 0 - Sunday 6)
 name = [] # name of the holiday
 det  = [] # type (e.g. national holiday)
 for i in range(1,100):
@@ -72,8 +76,9 @@ for i in range(1,100):
         date_ = table.find_all("tr", class_="showrow")[i].find("th", class_="nw")
         date.append(date_.text)
         
-        dow_ = table.find_all("tr", class_="showrow")[i].find("td", class_="nw")
-        dow.append(dow_.text)
+        dow_ = table.find_all("tr", class_="showrow")[i].find("td", class_="nw").text
+        dow_ = time.strptime(dow_, '%A').tm_wday        
+        dow.append(dow_)
         
         name_ = table.find_all("tr", class_="showrow")[i].find_all("td")[1]
         name.append(name_.text)
@@ -114,8 +119,9 @@ for i in URLS:
                 date_ = table.find_all("tr", class_="showrow")[j].find("th", class_="nw")
                 date.append(date_.text)
         
-                dow_ = table.find_all("tr", class_="showrow")[j].find("td", class_="nw")
-                dow.append(dow_.text)
+                dow_ = table.find_all("tr", class_="showrow")[j].find("td", class_="nw").text
+                dow_ = time.strptime(dow_, '%A').tm_wday        
+                dow.append(dow_)
         
                 name_ = table.find_all("tr", class_="showrow")[j].find_all("td")[1]
                 name.append(name_.text)
