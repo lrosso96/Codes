@@ -71,7 +71,7 @@ date = [] # date of the holiday day, month
 dow  = [] # day of the week (Monday 0 - Sunday 6)
 name = [] # name of the holiday
 det  = [] # type (e.g. national holiday)
-for i in range(1,100):
+for i in range(0,100):
     try:
         date_ = table.find_all("tr", class_="showrow")[i].find("th", class_="nw")
         date.append(date_.text)
@@ -114,7 +114,7 @@ for i in URLS:
     browser.quit()
     try:
         table=soup.find("table", class_="table table--left table--inner-borders-rows table--full-width table--sticky table--holidaycountry").tbody
-        for j in range(1,365):
+        for j in range(0,365):
             try:
                 date_ = table.find_all("tr", class_="showrow")[j].find("th", class_="nw")
                 date.append(date_.text)
