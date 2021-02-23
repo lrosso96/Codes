@@ -8,7 +8,7 @@
 # closely linked to "adopt a pet" from Alvaro Carril (https://acarril.github.io/posts/adopt-dog-python)
 
 from os import chdir
-chdir ("C:/Users/LR/Desktop/ME/Programación/Python")
+chdir ("C:/Users/LR/Desktop/ME/Programación/Python") #must be changed
 
 from bs4 import BeautifulSoup
 import requests
@@ -105,13 +105,13 @@ else:
     subject = 'Closed positions.'
 
 # sender
-sender = 'lrosso@fen.uchile.cl'
-password = 'lucasrosso1996'
+sender = 'your_email@gmail.com'
+password = 'your_password'
 smtp_server = "smtp.gmail.com"
 port = 587
 
 # recepient
-recipient  = 'lrosso@fen.uchile.cl'
+recipient  = 'your_email@gmail.com'
 
 msg = MIMEMultipart()
 msg['From'] = sender
