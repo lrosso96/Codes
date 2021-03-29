@@ -2,71 +2,10 @@
 #       Fiscal reforms in Latin America       #
 # ------------------------------------------- #
 
-# code to do textmine art. iv from latin american countries
+# code to do textmine art. ivs from latin american countries
 # author: Lucas Rosso
 # date: 24-03-2021
 
-# installing packages
-# !pip install nltk
-#pip install pdfminer.six
-#pip install PyPDF2
-#pip install pdfkit
-# pip install fitz
-# pip install PyMuPDF
-
-
-
-from os import chdir
-main_dir = 'C:/Users/LR/Desktop/ME/Ayudantía Wagner/Fiscal_Project/Python' 
-raw_article_iv = '/raw_article_iv'
-chdir(main_dir)
-
-import PyPDF2
-import mining_func
-
-
-chdir(main_dir + raw_article_iv)
-reader = PyPDF2.PdfFileReader(
-    'CHL_18.pdf')
-
-print(reader.documentInfo)
-
-num_of_pages = reader.numPages
-print('Number of pages: ' + str(num_of_pages))
-
-reader = PyPDF2.PdfFileReader('CHL_18.pdf')
-num_of_pages = reader.numPages # for the loop
-reader.getPage(11-1).extractText().find('fiscal')
-
-import nltk
-from nltk.tokenize import sent_tokenize
-
-text = reader.getPage(12).extractText()
-tokenized_text=sent_tokenize(text)
-
-import io
-CHI_18 = open('CHL_18.pdf','r')
-
-pdfFileObj = open('CHL_18.pdf','rb')     #'rb' for read binary mode
-reader = PyPDF2.PdfFileReader(pdfFileObj)
-
-
-import fitz 
-doc = fitz.open("CHL_18.pdf")
-num_pages = doc.pageCount
-page = doc.loadPage(11).getText() 
-text = doc.loadPage(11).get_text("html")
-
-page.searchFor("fiscal")
-doc.loadPage(11).searchFor("fiscal")
-
-paa = []
-para = doc.loadPage(0).get_text("blocks")
-para = [x[4] for x in para]
-paa.extend(para)
-
-
-##################################
 #%% 
 
 # pip install fitz
@@ -83,9 +22,9 @@ import fitz
 files = os.listdir(main_dir + raw_article_iv) # art. ivs
 
 # pre-allocation of vars
-text =  []
-iso3c = []
-year  = [] 
+text      = []
+iso3c     = []
+year      = [] 
 
 # loop to extract all paragraphs (aka "blocks")
 for file in files:
@@ -94,13 +33,15 @@ for file in files:
     for page in range(0,num_pages):
         text_ = doc.loadPage(page).getText("blocks")
         text_ = [x[4] for x in text_] # 4 = element with string in tuple
-        for te in text_:
+        text_aux = [t.split('\n \n') for t in text_]
+        flat_list = [item for sublist in text_aux for item in sublist]
+        for te in flat_list:
             iso3c_ = file[0:3]
             iso3c.append(iso3c_)
             
-            year_  = str(20) + file[4:6]
+            year_  = file[4:8]
             year.append(year_)
-        text.extend(text_)  
+        text.extend(flat_list)  
 
 # keywords indicating tax policy
 keywords = ['fiscal consolidation', 'tax reform', 'corporate tax'
@@ -110,6 +51,27 @@ keywords = ['fiscal consolidation', 'tax reform', 'corporate tax'
 key_para = [x for x in text if
               any(y in x for y in keywords)]
 
+
+# generating variable with list of keywords that appear on selected paragraph
+strip_keywords = []
+for k in keywords:
+    strip_keywords.append(k.replace(" ", ""))
+    
+found_words = []
+for key in key_para:
+    found_words_ = [word for word in strip_keywords 
+                    if word in key.replace(" ", "")]
+    found_words.append(found_words_)
+    
+for word in found_words:
+    for l in range(0,len(word)):
+        for k in keywords:
+            if word[l] == k.replace(" ", ""):
+                word[l] = k
+            else:
+                pass
+
+# indicators for year and country code
 inds = []
 for te in text:
     inds_ = (any(y in te for y in keywords))
@@ -128,10 +90,7 @@ df = pd.DataFrame({
     'iso3c':key_iso3c,
     'year':key_year,
     'key_paragraph':key_para,
+    'keyword':found_words,
 })
     
-df.to_csv(path_or_buf='key_paragraphs.csv',sep='|',index=False)
-
-
-
-        
+df.to_csv('key_paragraphs.csv',index=False,encoding='utf-16')
