@@ -6,6 +6,7 @@
 # author: Lucas Rosso
 # date: 24-03-2021
 
+# %%
 # loading libraries
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -15,7 +16,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import time 
 import numpy as np
-import pandas as pd
 import os
 from os import chdir
 chdir("C:/Users/LR/Desktop/ME/Ayudantía Wagner/Fiscal_Project/Python")
@@ -30,12 +30,6 @@ def Rename_file(new_name, Dl_path):
     filename = max([f for f in os.listdir(Dl_path)])
     os.rename(os.path.join(Dl_path, filename), os.path.join(Dl_path, new_name+'.pdf'))
 
-
-countries = ['Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia',
-             'Costa Rica', 'Ecuador', 'El Salvador','Guatemala', 
-             'Honduras', 'Jamaica','México', 'Nicaragua','Panamá', 
-             'Paraguay', 'Perú','República Dominicana',
-             'Trinidad and Tobago','Uruguay', 'Venezuela']
 
 iso3c = ['ARG', 'BOL', 'BRA', 'CHL', 'COL', 'CRI', 'ECU', 'SLV', 
          'GTM', 'HND', 'JAM', 'MEX', 'NIC', 'PAN', 'PRY', 'PER',
@@ -64,13 +58,21 @@ options.add_experimental_option("prefs", {
 options.add_argument('--disable-gpu')
 options.add_argument('--disable-software-rasterizer')
 
+# %%
+
 driver = webdriver.Chrome(options=options) 
 
 # directory to store art. iv files
-download_dir = "C:\\Users\\LR\\Desktop\\ME\\Ayudantía Wagner\\Fiscal_Project\\Python\\raw_article_iv"
+download_dir = "C:\\Users\\LR\\Desktop\\ME\\Ayudantía Wagner\\Fiscal_Project\\Python\\raw_article_ivs"
 
 # function to handle setting up headless download
 enable_download_headless(driver, download_dir)
+
+# emptying the directory
+files = os.listdir(download_dir) 
+for file in files:
+    os.remove(download_dir +'\\' + file)
+
 
 for link in links:
     driver.get(link)
@@ -87,25 +89,23 @@ for link in links:
                 .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/h6/a')))\
                 .click() 
             
-            # countrycode
+            # countrycode (for name of the file)
             countrycode = link[link.find("s/")+2:link.find("s/")+5]
-            
-            # art. iv year (for name of the file)
-            # year = driver.find_element_by_xpath('/html/body/div[3]/main/article/div[1]/div/section[1]/h2').text
-            # year = year[year.find(":")+1:year.find(":")+6]
              
             # download art. iv
             WebDriverWait(driver, 10)\
                 .until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/main/article/div[1]/div/section[1]/p[6]/a[1]')))\
                 .click()
-            
-            # rename file with common structure    
-            Rename_file(countrycode+'_'+str(year),download_dir)
+                
+            time.sleep(np.random.randint(3,6))
             
             # back to main page
             driver.back()
             
-            time.sleep(np.random.randint(0,3))
+            # rename file with common structure    
+            Rename_file(countrycode+'_'+str(year),download_dir)
+            
+            time.sleep(np.random.randint(3,6))
             
         except:
             try:
@@ -122,23 +122,24 @@ for link in links:
                         WebDriverWait(driver, 10)\
                             .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/h6/a')))\
                             .click() 
-
-                        # art. iv year (for name of the file)
-                        # year = driver.find_element_by_xpath('/html/body/div[3]/main/article/div[1]/div/section[1]/h2').text
-                        # year = year[year.find(":")+1:year.find(":")+6]
              
-                        # download art. iv
+                        # download art. iv                                   
                         WebDriverWait(driver, 10)\
                             .until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/main/article/div[1]/div/section[1]/p[6]/a[1]')))\
                             .click()
+                            
+                        time.sleep(np.random.randint(3,6))
             
                         # rename file with common structure    
-                        Rename_file(countrycode+str(year),download_dir)
+                        Rename_file(countrycode+'_'+str(year),download_dir)
+                        
+                        time.sleep(np.random.randint(3,6))
             
                         # back to main page
                         driver.back()
                     except IndexError:
                         break
             except:
-                print('on to the next')
+                time.sleep(np.random.randint(2,5))
                 pass
+driver.close()
