@@ -14,7 +14,7 @@ import os
 import pandas as pd
 from os import chdir
 main_dir = 'C:/Users/LR/Desktop/ME/Ayudantía Wagner/Fiscal_Project/Python'
-raw_article_iv = '/raw_article_iv' 
+raw_article_iv = '/raw_article_ivs' 
 data = '/Data'
 chdir(main_dir + raw_article_iv)
 
@@ -28,20 +28,25 @@ year      = []
 
 # loop to extract all paragraphs (aka "blocks")
 for file in files:
-    doc = fitz.open(file)
-    num_pages = doc.pageCount
-    for page in range(0,num_pages):
-        text_ = doc.loadPage(page).getText("blocks")
-        text_ = [x[4] for x in text_] # 4 = element with string in tuple
-        text_aux = [t.split('\n \n') for t in text_]
-        flat_list = [item for sublist in text_aux for item in sublist]
-        for te in flat_list:
-            iso3c_ = file[0:3]
-            iso3c.append(iso3c_)
+    if file != 'chromedriver.exe': # only file that is not an art. iv:
+        doc = fitz.open(file)
+        num_pages = doc.pageCount
+        for page in range(0,num_pages):
+            text_ = doc.loadPage(page).getText("blocks")
+            text_ = [x[4] for x in text_] # 4 = element with string in tuple
+            text_aux = [t.split('\n \n') for t in text_]
+            flat_list = [item for sublist in text_aux for item in sublist]
+            for te in flat_list:
+                if len(file) == 12:
+                    iso3c_ = file[0:3]
+                    iso3c.append(iso3c_)
             
-            year_  = file[4:8]
-            year.append(year_)
-        text.extend(flat_list)  
+                    year_  = file[4:8]
+                    year.append(year_)
+                else:
+                    iso3c.append('.')
+                    year.append('.')
+            text.extend(flat_list)  
 
 # keywords indicating tax policy
 keywords = ['fiscal consolidation', 'tax reform', 'corporate tax'
@@ -50,7 +55,6 @@ keywords = ['fiscal consolidation', 'tax reform', 'corporate tax'
 # Filtering the blocks that contain "keywords"
 key_para = [x for x in text if
               any(y in x for y in keywords)]
-
 
 # generating variable with list of keywords that appear on selected paragraph
 strip_keywords = []
@@ -92,5 +96,6 @@ df = pd.DataFrame({
     'key_paragraph':key_para,
     'keyword':found_words,
 })
-    
+  
 df.to_csv('key_paragraphs.csv',index=False,encoding='utf-16')
+          
