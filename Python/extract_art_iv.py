@@ -18,16 +18,17 @@ import time
 import numpy as np
 import os
 from os import chdir
-chdir("C:/Users/LR/Desktop/ME/Ayudantía Wagner/Fiscal_Project/Python")
+chdir("C:/Users/LR/Desktop/ME/Ayudantía Wagner/Fiscal_Project/Python/raw_article_ivs")
 
 # function to take care of downloading file
 def enable_download_headless(browser,download_dir):
     browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
     params = {'cmd':'Page.setDownloadBehavior', 'params': {'behavior': 'allow', 'downloadPath': download_dir}}
     browser.execute("send_command", params)
-    
+
+# function to rename file once downloaded
 def Rename_file(new_name, Dl_path):  
-    filename = max([f for f in os.listdir(Dl_path)])
+    filename = max([f for f in os.listdir(Dl_path)], key=os.path.getctime)
     os.rename(os.path.join(Dl_path, filename), os.path.join(Dl_path, new_name+'.pdf'))
 
 
@@ -68,78 +69,128 @@ download_dir = "C:\\Users\\LR\\Desktop\\ME\\Ayudantía Wagner\\Fiscal_Project\\P
 # function to handle setting up headless download
 enable_download_headless(driver, download_dir)
 
-# emptying the directory
+# emptying the directory (except the chromedriver file)
 files = os.listdir(download_dir) 
 for file in files:
-    os.remove(download_dir +'\\' + file)
+    if file != 'chromedriver.exe':
+        os.remove(download_dir +'\\' + file)
+    else:
+        pass
 
+
+# some countries appear on the wrong countrypage
+not_wanted = ['Republic of Croatia', 'Republic of the Marshall Islands',
+              'Thailand']
 
 for link in links:
     driver.get(link)
-    #driver.get(links[5])
     time.sleep(np.random.randint(0,10))
 
-    for i in range(1,15):
-        try:
+    #elements in page
+    elements = driver.find_elements_by_class_name('result-item')
+    for i in range(1,len(elements)+1):             
+            # click to get art iv (and pass for "not wanted" countries)
+            country_check = driver.find_element_by_xpath('//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/h6/a').text
+            country_check = country_check[0:country_check.find(":")-1]
+            if any(y in country_check for y in not_wanted):
+                continue
+            else:
+                WebDriverWait(driver, 10)\
+                    .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/h6/a')))\
+                    .click() 
+            
             # art. iv year (for name of the file)
-            year = driver.find_element_by_xpath('//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/p').text
-            year = year[year.find(",")+2:year.find(",")+6]    
-           
-            WebDriverWait(driver, 10)\
-                .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/h6/a')))\
-                .click() 
+            try:
+                year = driver.find_element_by_xpath('/html/body/div[3]/main/article/div[1]/div/section[1]/p[4]').text
+                year = year[year.find(",")+2:year.find(",")+6] 
+                ind = 1
+            except:
+                year = driver.find_element_by_xpath('/html/body/div[3]/main/article/div[2]/div/section[1]/p[4]').text
+                year = year[year.find(",")+2:year.find(",")+6] 
+                ind = 2
+            
+            time.sleep(np.random.randint(1,3))
             
             # countrycode (for name of the file)
             countrycode = link[link.find("s/")+2:link.find("s/")+5]
              
             # download art. iv
-            WebDriverWait(driver, 10)\
-                .until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/main/article/div[1]/div/section[1]/p[6]/a[1]')))\
-                .click()
+            try:
+                WebDriverWait(driver, 10)\
+                    .until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/main/article/div['+str(ind)+']/div/section[1]/p[6]/a[1]')))\
+                    .click()
+            except:
+                WebDriverWait(driver, 10)\
+                    .until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/main/article/div['+str(ind)+']/div/section[1]/p[4]/a[1]')))\
+                    .click()
                 
-            time.sleep(np.random.randint(3,6))
+            time.sleep(np.random.randint(4,7))
             
             # back to main page
             driver.back()
             
+            # rename file with common structure 
+            try:
+                Rename_file(countrycode+'_'+str(year),download_dir)
+            except: 
+                pass
+            
+            time.sleep(np.random.randint(4,7))
+    
+    # try to loop again for elements in second page
+    try:
+        # go to next page
+        WebDriverWait(driver, 15)\
+            .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[3]/div/a')))\
+            .click() 
+                        
+        time.sleep(np.random.randint(4,7))
+        
+        #elements in page
+        elements = driver.find_elements_by_class_name('result-item')
+        
+        for i in range(1,len(elements)+1):               
+            # click to get art iv (and pass for "not wanted" countries)
+            country_check = driver.find_element_by_xpath('//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/h6/a').text
+            country_check = country_check[0:country_check.find(":")-1]
+            if any(y in country_check for y in not_wanted):
+                continue
+            else:
+                WebDriverWait(driver, 10)\
+                    .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/h6/a')))\
+                    .click()
+            
+            # art. iv year (for name of the file) 
+            year = driver.find_element_by_xpath('/html/body/div[3]/main/article/div[1]/div/section[1]/p[4]').text
+            year = year[year.find(",")+2:year.find(",")+6]
+            
+            time.sleep(np.random.randint(1,3))
+            
+            # download art. iv                                   
+            WebDriverWait(driver, 10)\
+                .until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/main/article/div[1]/div/section[1]/p[6]/a[1]')))\
+                .click()
+                            
+            time.sleep(np.random.randint(5,8))
+            
             # rename file with common structure    
             Rename_file(countrycode+'_'+str(year),download_dir)
             
-            time.sleep(np.random.randint(3,6))
-            
-        except:
-            try:
-                # go to next page
-                WebDriverWait(driver, 10)\
-                    .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[3]/div/a')))\
-                    .click() 
-                for i in range(1,15):
-                    try:
-                        # art. iv year (for name of the file)
-                        year = driver.find_element_by_xpath('//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/p').text
-                        year = year[year.find(",")+2:year.find(",")+6]    
-           
-                        WebDriverWait(driver, 10)\
-                            .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[2]/div/div['+str(i)+']/h6/a')))\
-                            .click() 
-             
-                        # download art. iv                                   
-                        WebDriverWait(driver, 10)\
-                            .until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/main/article/div[1]/div/section[1]/p[6]/a[1]')))\
-                            .click()
-                            
-                        time.sleep(np.random.randint(3,6))
-            
-                        # rename file with common structure    
-                        Rename_file(countrycode+'_'+str(year),download_dir)
-                        
-                        time.sleep(np.random.randint(3,6))
-            
-                        # back to main page
-                        driver.back()
-                    except IndexError:
-                        break
-            except:
-                time.sleep(np.random.randint(2,5))
-                pass
+            # back to main page
+            driver.get(link)
+            time.sleep(np.random.randint(5,8))
+              
+            # go to next page (browser goes back to page 1)
+            WebDriverWait(driver, 10)\
+                .until(EC.presence_of_element_located((By.XPATH, '//*[@id="docSearch_GUID"]/div/div[1]/div/span/a')))\
+                .click()
+    except:
+        # click "no feedback"
+        # try:
+        #     WebDriverWait(driver, 10)\
+        #         .until(EC.presence_of_element_located((By.XPATH, '//*[@id="fsrInvite"]/section[3]/button[2]')))\
+        #         .click()
+                
+        time.sleep(np.random.randint(3,6))
+    
 driver.close()
