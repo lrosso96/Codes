@@ -89,7 +89,7 @@ for i in range(1,9):
     
     time.sleep(np.random.randint(3,5))
     # number of files to download
-    num_files = driver.find_elements_by_class_name('richText-content')
+    num_files = driver.find_elements_by_xpath('//*[@id="accordion-content-02094958150-'+str(i-1)+'"]/div/div/div/div/div')
     for j in range(1,len(num_files)+1):
         #click to download pdf
         WebDriverWait(driver, 30)\
@@ -99,6 +99,9 @@ for i in range(1,9):
     
     time.sleep(10)
     
+    # scroll up the page to leave space for the button to be clicked
+    driver.execute_script("window.scrollTo(0, 400)")
+    
     # close detail for tax guide type already done
     WebDriverWait(driver, 10)\
         .until(EC.presence_of_element_located((By.XPATH, '//*[@id="body-components-wrapper"]/div/div[1]/div/div[2]/div/ul/li['+str(i)+']/header/h3/a')))\
@@ -107,4 +110,3 @@ for i in range(1,9):
     time.sleep(np.random.randint(20,30))
 
 driver.close()
-   
