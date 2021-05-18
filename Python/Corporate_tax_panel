@@ -4,9 +4,10 @@
 
 # code to generate panel of corporate taxes from EY
 # author: Lucas Rosso
-# date: 28-04-2021
+# date: 17-05-2021
 
 '''
+[New version]: simpler code and solves some bugs from the original
 brief overview: this code intends to exploit structure of corporate tax guidees from EY.
 In particular, the fact that all country sections start with a summary of tax rates named
 "At a Glance". This allows to follow differnt tax rates across years and countries and build
@@ -77,16 +78,27 @@ for i in range(1,152):
     jurisdiction.append(aux.text)
     
 # adding some countries or alternative country names to get cleaner data
-add_countries = ['Armenia','British Virgin Islands','China Mainland','Congo, Democratic Republic of',
+add_countries = ['Armenia','Azerbaijan','British Virgin Islands','China Mainland','Congo, Democratic Republic of',
                  'Congo, Republic of','Côte d’Ivoire','Guernsey, Channel Islands','Guinea','Guyana',
                  'Moldova','Monaco','CHINA, PEOPLE’S REPUBLIC OF','CÔTE D’IVOIRE (IVORY COAST)',
                  'China, People\'s Republic of','China (mainland)','Congo, Democratic Republic of ',
                  'Hong Kong Special Administrative Region (SAR) of China',
-                 'Hong Kong Special Administrative Region \n(SAR) of China']
+                 'Hong Kong Special Administrative Region \n(SAR) of China','Bolivia','Eswatini','Georgia',
+                 'Guam','Iran','Ireland, Republic of','Jersey, Channel Islands','Korea','Korea (South)','Laos',
+                 'Lebanon','Lesotho','Macau','Macedonia, Former Yugoslav Republic of','Madagascar','Malawi',
+                 'Maldives','Mauritania','Montenegro, Republic of','Nepal','Netherlands Antilles','Nicaragua',
+                 'Northern Mariana Islands, \nCommonwealth of the','Northern Mariana Islands, \nCommonwealth ofthe',
+                 'Northern Mariana Islands,\nCommonwealth ofthe','Northern Mariana Islands,\nCommonwealth of the',
+                 'Palestinian Authority','St. Lucia','Saint Martin','são Tomé anD príncipE',
+                 'Senegal','Serbia, Republic of','Slovak Republic','Sint Maarten','Sudan','Swaziland','Seychelles',
+                 'Syria','Taiwan','Tanzania','US Virgin Islands','Venezuela','Kosovo','Macau Special Administrative Region (SAR) of China',
+                 'Macau Special Administrative Region \n(SAR) of China','New Caledonia','Palestine','Serbia and Montenegro, Union of',
+                 'Part 2: Republic of Montenegro','Saint-Martin','U.S. Virgin Islands','Zimbabwe']
 
 jurisdiction_plus = jurisdiction + add_countries
     
 driver.close()
+
 
 #%% 
 '''
@@ -113,9 +125,10 @@ for file in files:
 #%% 
      
 '''
-Now we want to filter the data by selecting a subset of countries and then within countries,
-extract only the first subsection "At a glance".
-'''         
+In this block I will identify the country and the year from both the filename
+and the text within each file.
+'''
+            
 # we can identify country sections by titles "country+\n"
 jurisdiction_aux = []
 for j in range(0,len(jurisdiction_plus)):
@@ -129,106 +142,67 @@ for t in range(0,len(text)):
     else:
         pass
 
-# filter by sample of countries of interest
-countries = ['Argentina','Bolivia','Brazil','Chile','Colombia','Costa Rica',
-             'Ecuador','El Salvador','Guatemala','Honduras','Jamaica',
-             'Mexico','Nicaragua','Panama','Paraguay','Peru','Dominican Republic',
-             'Trinidad and Tobago','Uruguay','Venezuela, Bolivarian Republic of']
+# Extract country name from chapter titles
+countryname = []
+for t in range(0,len(text)):
+    if text[t].lower().replace(' ','') in jurisdiction_aux:
+        countryname.append(text[t])
+    else:
+        try:
+            countryname.append(countryname[-1])
+        except:
+            countryname.append('.')
 
-# several aux variables to clean data
-country_aux1 = []
-country_aux2 = []
-country_aux3 = []
-country_aux4 = []
-country_aux5 = []
-for c in range(0,len(countries)):
-    country_aux1.append('\n'+countries[c]+'\n')
-    country_aux2.append(countries[c]+' \n')
-    country_aux3.append('  '+countries[c].lower()+' \n')
-    country_aux4.append(' \n'+countries[c].lower()+'  ')
-    country_aux5.append(countries[c].lower()+' (continued)\n')
-    countries[c] = countries[c].lower().replace(' ','')+'\n' 
+# Get the year from the filename            
+year_aux = []
+for f in filename_aux:
+    year_aux.append(f[-8:-4])
     
-
-subset_text  = []
-countryname  = []
-filename     = []
-for i in range(0,len(ind)-1):
-    if text[ind[i]].lower().replace(' ','') in countries:
-        #text
-        subset_text.extend(text[ind[i]:ind[i+1]])
-        
-        #country
-        countryname.extend([text[ind[i]]]*(ind[i+1]-ind[i]))
-        
-        #filename (allows to identify tax guide and year)
-        filename.extend(filename_aux[ind[i]:ind[i+1]])
-if text[ind[len(ind)-1]].lower().replace(' ','') in countries:
-    subset_text.extend(text[ind[len(ind)-1]:])
-    countryname.extend([text[ind[i]]]*(ind[i+1]-ind[i]))
-    filename.extend(filename_aux[ind[i]:ind[i+1]])
-    
-#%%
-'''
-Now we need to filter the text to delete unnecessary info
-'''
-
-not_needed = ['Email:','E-mail:','e-mail','Fax','Mobile:','ey.com','GMT','Tel ','Country code',
-              'Executive contacts','Ernst & Young','Mail address','Street Address','EY contact',
-              '\uf0a8','\uf0fe']
-
-not_needed = country_aux1 + country_aux2 + not_needed
-country_auxs = country_aux3 + country_aux4 + country_aux5
-
-# also need to update filename and countryname after the filter
-aux_1 = []
-aux_2 = []
-aux_3 = []
-for i in range(0,len(subset_text)):
-    if not any(y in subset_text[i] for y in not_needed) and not any(y in subset_text[i].lower() for y in country_auxs):
-        aux_1.append(subset_text[i])
-        aux_2.append(countryname[i])
-        aux_3.append(filename[i])
-subset_text = aux_1 
-countryname = aux_2
-filename    = aux_3
-        
-
+                
 #%%
 '''
 Now we need to identify the section "At a glance" and extract all specific 
-corporate tax rates.
+corporate tax rates.  
 '''
 
-# get indicator for "At a glance" and "carry forward" (last entry of corp tax table)
+withholding = ['Withholding Tax (%)', 'Withholding Tax Rate (%)', 'Withholding Tax* (%)', 'Withholding Tax (% )',
+               'Withholding Tax (%) (a)','Withholding Tax (%)(a)','Withholding Tax (%) (b)','Withholding Tax (%)(b)','Yield Tax Rate (%)',
+               'Withholding Tax (%) (c)','Withholding Tax (%)(c)']
+
+# Some countries have both withholding tax and Capital Gains Withholding Tax Rate (%) which is troubling
+for t in range(0,len(text)):
+    text[t] = text[t].replace('Capital Gains Withholding Tax Rate (%)','Not_Interested')
+    
+
+# get indicator for "At a glance" and "Withholding Tax"
 ind_1 = []
 ind_2 = []
-for t in range(0,len(subset_text)):
-    # both on the same element
-    if 'a. at a glance' in subset_text[t].lower() and 'Carryforward' in subset_text[t]:
+for t in range(0,len(text)):
+    # both on the same element (the last condition is due to problems with Zimbawe 2016)
+    if 'a. at a glance' in text[t].lower() and any(y in text[t] for y in withholding): # and 'Capital Gains Withholding Tax Rate (%)' not in text[t]:
         ind_1.append(t)
         ind_2.append(t)
     # only 'at a glance'
-    elif 'a. at a glance' in subset_text[t].lower():
+    elif 'a. at a glance' in text[t].lower():
         ind_1.append(t)
-    # only 'carryforward'
-    # important: 'Carryforward' not in lower() to prevent getting indicator elsewhere
-    elif 'Carryforward' in subset_text[t] and 'carryforwards' not in subset_text[t].lower(): 
+    # only 'Withholding Tax'
+    elif any(y in text[t] for y in withholding): # and 'Capital Gains Withholding Tax Rate (%)' not in text[t]: 
+        ind_2.append(t)
+    elif countryname[t].replace(' ','') == 'Philippines\n' and 'Withholding Tax \n' in text[t]:
         ind_2.append(t)
 
 # use both indicators to get the desired text, country and filename (the last one to get the year)
 at_a_glance  = []
 country_name = []
-file         = []
+year         = []
 for i in range(0,len(ind_1)-1):
-        at_a_glance.extend(subset_text[ind_1[i]:ind_2[i]+1])
+    if len(ind_1) != len(ind_2):
+        print('Different length')
+        break
+    else:
+        at_a_glance.extend(text[ind_1[i]:ind_2[i]+1])
         country_name.extend(countryname[ind_1[i]:ind_2[i]+1])
-        file.extend(filename[ind_1[i]:ind_2[i]+1])
-
-# now get the year
-year = []
-for f in file:
-    year.append(f[-8:-4]) # year is always in the same position in the file name.
+        year.extend(year_aux[ind_1[i]:ind_2[i]+1])
 
 #%%
 
@@ -279,13 +253,13 @@ split text into two variables.
 '''
 
 # first some cleaning
-symbols = ['(%)', '(a)', '(b)', '(c)', '(d)', '(e)', '(f)'] 
+symbols = ['(%)', '(a)', '(b)', '(c)', '(d)', '(e)', '(f)', '*'] 
 for i in range(0,len(text_panel)):
     for s in symbols:
         text_panel[i] = text_panel[i].replace(s,'')
 
 # tax categories we want 
-taxes = ['CorporateIncomeTaxRate','CapitalGainsTaxRate','BranchTaxRate']
+taxes = ['CorporateIncomeTaxRate','CapitalGainsTaxRate','BranchTaxRate','Dividends']
 
 tax     = []
 rate    = []
@@ -293,13 +267,27 @@ country = []
 year    = []
 for t in range(0,len(text_panel)):
     if text_panel[t].replace(' ','') in taxes:
-        # tax and rate
-        tax.append(text_panel[t].replace(' ','')) # remove spaces will make the reshape easier later in Stata
-        rate.append(text_panel[t+1].strip())
+        if len(tax) == 0:
+            # tax and rate
+            tax.append(text_panel[t].replace(' ','')) # remove spaces will make the reshape easier later in Stata
+            rate.append(text_panel[t+1].strip())
         
-        # country and year
-        year.append(time[t])
-        country.append(countryname[t].strip())
+            # country and year
+            year.append(time[t])
+            country.append(countryname[t].strip())
+        elif len(tax)>0 and text_panel[t].replace(' ','') != tax[len(tax)-1]:
+            # tax and rate
+            tax.append(text_panel[t].replace(' ','')) # remove spaces will make the reshape easier later in Stata
+            rate.append(text_panel[t+1].strip())
+        
+            # country and year
+            year.append(time[t])
+            country.append(countryname[t].strip())
+            
+# final edits to some countrynames
+for i in range(0,len(country)):
+    country[i] = country[i].replace(', people’s republic of','')
+    country[i] = country[i].replace('ireland, republic of','ireland')
 
 #%%
 '''
@@ -315,4 +303,4 @@ df = pd.DataFrame({
 })
 
 # export to csv file
-df.to_csv('corp_tax_panel.csv',index=False,sep='|',encoding='utf-8')
+df.to_csv('corp_tax_panel_full.csv',index=False,sep='|',encoding='utf-16')
